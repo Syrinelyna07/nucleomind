@@ -14,7 +14,23 @@ const dbConfig = {
 };
 console.log('DB CONFIG:', envConfig.DB_HOST, envConfig.DB_PORT);
 const pool = mysql.createPool(dbConfig);
-
+async function dropTables () {
+    try {
+        await pool.execute(`SET FOREIGN_KEY_CHECKS = 0;`);
+        await pool.execute(`DROP TABLE IF EXISTS interaction_posts`);
+        await pool.execute(`DROP TABLE IF EXISTS interaction_problems`);
+        await pool.execute(`DROP TABLE IF EXISTS problem_solution`);
+        await pool.execute(`DROP TABLE IF EXISTS interaction_keywords`);
+        await pool.execute(`DROP TABLE IF EXISTS interactions`);
+        await pool.execute(`DROP TABLE IF EXISTS posts`);
+        await pool.execute(`DROP TABLE IF EXISTS problems`);
+        await pool.execute(`DROP TABLE IF EXISTS solutions`);
+        await pool.execute(`DROP TABLE IF EXISTS keywords`);
+        await pool.execute(`DROP TABLE IF EXISTS accounts`);
+    } catch (error) {
+        throw new Error(`Error dropping tables : ${error.message}`);
+    }
+}
 async function createAccountTable() {
     try {
         const [result] = await pool.execute(`CREATE TABLE IF NOT EXISTS accounts (
@@ -41,6 +57,8 @@ const createInteractionTable = async () => {
             sentiment_label ENUM ('positive', 'negative', 'neutral'),
             emotion_label VARCHAR(255),
             suggested_reply TEXT,
+            is_urgent BOOLEAN DEFAULT FALSE,
+            urgency_reason TEXT,
             content_lg VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
@@ -148,6 +166,7 @@ const createInteractionKeywordTable = async () => {
     }
 }
 
+
 async function createTables() {
     await createAccountTable();
     await createInteractionTable();
@@ -161,5 +180,6 @@ async function createTables() {
     await createInteractionPostTable();
 }
 
-createTables();
+await createTables();
+
 export default pool;

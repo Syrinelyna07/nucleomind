@@ -4,12 +4,12 @@ const n = (val) => (val === undefined || val === '' ? null : val);
 
 class Interaction {
     static async create(data) {
-        const { status, description, source_type, author_username, content_text, sentiment_label, emotion_label, suggested_reply, content_lg, created_at } = data;
+        const { status, description, source_type, author_username, content_text, sentiment_label, emotion_label, suggested_reply, content_lg, created_at , is_urgent , urgency_reason} = data;
         try {
             const [result] = await pool.execute(
-                `INSERT INTO interactions (status, description, source_type, author_username, content_text, sentiment_label, emotion_label, suggested_reply, content_lg, created_at) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [n(status), n(description), n(source_type), n(author_username), n(content_text), n(sentiment_label), n(emotion_label), n(suggested_reply), n(content_lg), n(created_at)]
+                `INSERT INTO interactions (status, description, source_type, author_username, content_text, sentiment_label, emotion_label, suggested_reply, content_lg, created_at,is_urgent,urgency_reason) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)`,
+                [n(status), n(description), n(source_type), n(author_username), n(content_text), n(sentiment_label), n(emotion_label), n(suggested_reply), n(content_lg), n(created_at), n(is_urgent), n(urgency_reason) ]
             );
             return result.insertId;
         } catch (error) {
