@@ -29,8 +29,12 @@ class SocialCollectionPipeline:
         return results[0]
 
     def process_events(self, event_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+        seen_ids: set[str] = set()
         results: List[Dict[str, Any]] = []
         for context, value in parse_event_payload(event_payload):
+            if context.event_id in seen_ids:
+                continue
+            seen_ids.add(context.event_id)
             try:
                 results.append(self._process_single_change(context, value))
             except UnsupportedEventError:
@@ -58,7 +62,7 @@ class SocialCollectionPipeline:
         canonical.urgency_reason = enrichment["urgency_reason"]
         canonical.recommended_solution = enrichment["recommended_solution"]
         canonical.suggested_reply = enrichment["suggested_reply"]
-        canonical.status = "treated"
+        canonical.status = "non-treated"
         return canonical.to_dict()
 
     def _fetch_details(
@@ -66,7 +70,7 @@ class SocialCollectionPipeline:
     ) -> Dict[str, Any]:
         fallback_detail = value.get("mock_detail")
         try:
-            if context.platform == "instagram" and context.source_type == "public_comment":
+            if context.platform == "instagram" and context.source_type == "private_comment":
                 return self.meta_client.fetch_instagram_comment_details(
                     context.comment_id or "",
                     account_name=context.account_name,
@@ -78,14 +82,21 @@ class SocialCollectionPipeline:
                     account_name=context.account_name,
                     fallback_data=fallback_detail,
                 )
-            if context.platform == "facebook" and context.source_type == "public_comment":
-                if context.parent_group_id:
-                    return self.meta_client.fetch_facebook_group_comment_details(
-                        context.comment_id or "",
-                        account_name=context.account_name,
-                        fallback_data=fallback_detail,
-                    )
+            if (
+                context.platform == "facebook"
+                and context.source_type == "private_comment"
+            ):
                 return self.meta_client.fetch_facebook_comment_details(
+                    context.comment_id or "",
+                    account_name=context.account_name,
+                    fallback_data=fallback_detail,
+                )
+            if (
+                context.platform == "facebook"
+                and context.source_type == "public_comment"
+                and context.parent_group_id
+            ):
+                return self.meta_client.fetch_facebook_group_comment_details(
                     context.comment_id or "",
                     account_name=context.account_name,
                     fallback_data=fallback_detail,
