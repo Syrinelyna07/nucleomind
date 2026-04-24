@@ -7,6 +7,7 @@ import accountRoute from './routes/accountRoute.js';
 import postRoute from './routes/postRoute.js';
 import problemRoute from './routes/problemRoute.js';
 import pool from './config/dbConfig.js';
+
 const app = express();
 pool.getConnection()
   .then(() => console.log("Connected to Railway DB ✅"))

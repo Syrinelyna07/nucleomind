@@ -51,5 +51,6 @@ const getPostWithRelations = async (req, res) => {
 export default {
     createPost,
     getAllPosts,
-    getPostWithRelations
+    getPostWithRelations,
+    getPostById
 };
