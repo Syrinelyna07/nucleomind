@@ -58,7 +58,7 @@ class SocialCollectionPipeline:
         canonical.urgency_reason = enrichment["urgency_reason"]
         canonical.recommended_solution = enrichment["recommended_solution"]
         canonical.suggested_reply = enrichment["suggested_reply"]
-        canonical.status = "analyzed"
+        canonical.status = "treated"
         return canonical.to_dict()
 
     def _fetch_details(

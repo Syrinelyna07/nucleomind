@@ -22,7 +22,7 @@ VALID_CATEGORIES = {
     "service_client",
     "autre",
 }
-VALID_STATUS = {"non-treated", "analyzed", "resolved"}
+VALID_STATUS = {"non-treated", "treated"}
 
 
 @dataclass

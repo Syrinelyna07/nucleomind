@@ -41,6 +41,7 @@ Chaque interaction est normalisee avec les champs suivants :
 - `recommended_solution` reste une liste
 - `problem_labels[i]` correspond a `recommended_solution[i]`
 - `suggested_reply` reste une seule reponse suggeree
+- `status` utilise maintenant seulement `non-treated` ou `treated`
 
 ## Source types
 
