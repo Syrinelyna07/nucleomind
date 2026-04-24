@@ -28,7 +28,17 @@ class Interaction {
             throw new Error(`Error updating interaction : ${error.message}`);
         }
     }
-
+    static async updateStatus(id,status){
+        try {
+            const [result] = await pool.execute(
+                `UPDATE interactions SET status = ? WHERE id = ?`,
+                [n(status), id]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            throw new Error(`Error updating interaction status : ${error.message}`);
+        }
+    }
     static async delete(id) {
         try {
             await pool.execute(`DELETE FROM interactions WHERE id = ?`, [id]);

@@ -4,9 +4,11 @@ class Post {
     static async create(data) {
         const {post_description,nbComments,post_link} = data ;  
         try {
+            console.log("Creating post with data:", data);
             if(!post_link) throw new Error("Post link is required") ;
             if(!post_description) throw new Error("Post description is required") ;
-            if(!this.findByLink(post_link)) {
+            const cond = await this.findByLink(post_link) ;
+            if(cond === null) {
                 const [result] = await pool.execute(`INSERT INTO posts (post_description,nbComments,post_link) VALUES (?,?,?)`,[post_description,nbComments,post_link]);
                 return result.insertId ;
             }
@@ -18,7 +20,8 @@ class Post {
     static async findByLink(post_link) {
         try {
             const [rows] = await pool.execute(`SELECT * FROM posts WHERE post_link = ?`, [post_link]);
-            return rows[0];
+            console.log("Finding post by link:", post_link, "Found:", rows);
+            return rows.length > 0 ? rows[0] : null ;
         } catch (error) {
             throw new Error(`Error finding post by link : ${error.message}`);
         }
