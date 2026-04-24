@@ -18,6 +18,16 @@ const getAllPosts = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+const getPostById = async (req,res) =>{
+    try {
+        const { id } = req.params;
+        const post = await Post.findById(id);
+        return res.status(200).json(post);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+
 
 const getPostWithRelations = async (req, res) => {
     try {
@@ -36,6 +46,7 @@ const getPostWithRelations = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 export default {
     createPost,

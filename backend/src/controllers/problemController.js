@@ -21,8 +21,17 @@ const updateProblem = async (req, res) => {
 
 const getAllProblems = async (req, res) => {
     try {
-        const data = await Problem.findAll();
-        res.json(data);
+        const problems = await Problem.findAll();
+
+        // attach solutions to each problem
+        const result = await Promise.all(
+            problems.map(async (problem) => {
+                const solutions = await Problem.findSolutionsByProblemId(problem.id);
+                return { ...problem, solutions };
+            })
+        );
+
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -33,6 +42,7 @@ const getProblemWithRelations = async (req, res) => {
         const { id } = req.params;
 
         const problem = await Problem.findById(id);
+        if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
         const solutions = await Problem.findSolutionsByProblemId(id);
 
@@ -42,11 +52,7 @@ const getProblemWithRelations = async (req, res) => {
             WHERE ip.problemId = ?
         `, [id]);
 
-        res.json({
-            problem,
-            solutions,
-            interactions
-        });
+        res.json({ problem, solutions, interactions });
 
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -57,5 +63,6 @@ export default {
     createProblem,
     updateProblem,
     getAllProblems,
-    getProblemWithRelations
+    getProblemWithRelations ,
+    
 };
