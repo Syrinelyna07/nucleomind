@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from .backend_client import BackendClient, BackendSyncError
 from .csv_exporter import CSVExporter
 from .event_parser import parse_event_payload
+from .config import settings
 from .exceptions import MetaApiError, UnsupportedEventError
 from .llm_classifier import LLMClassifier
 from .meta_api_client import MetaApiClient
@@ -17,10 +19,12 @@ class SocialCollectionPipeline:
         meta_client: MetaApiClient | None = None,
         classifier: LLMClassifier | None = None,
         csv_exporter: CSVExporter | None = None,
+        backend_client: BackendClient | None = None,
     ) -> None:
         self.meta_client = meta_client or MetaApiClient()
         self.classifier = classifier or LLMClassifier()
         self.csv_exporter = csv_exporter or CSVExporter()
+        self.backend_client = backend_client or BackendClient()
 
     def process_event(self, event_payload: Dict[str, Any]) -> Dict[str, Any]:
         results = self.process_events(event_payload)
@@ -41,6 +45,7 @@ class SocialCollectionPipeline:
                 continue
         if results:
             self.csv_exporter.append_rows(results)
+            self._sync_results_to_backend(results)
         return results
 
     def _process_single_change(
@@ -112,3 +117,13 @@ class SocialCollectionPipeline:
                 return fallback_detail
             raise
         raise UnsupportedEventError("Unable to fetch details for unsupported interaction type.")
+
+    def _sync_results_to_backend(self, results: List[Dict[str, Any]]) -> None:
+        if not self.backend_client.is_enabled():
+            return
+        try:
+            self.backend_client.send_batch(results)
+        except BackendSyncError as exc:
+            if settings.backend_fail_on_sync_error:
+                raise UnsupportedEventError(str(exc)) from exc
+            print(f"[data_collection] Backend sync skipped: {exc}")
