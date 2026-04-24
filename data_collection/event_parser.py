@@ -17,7 +17,10 @@ def parse_event_payload(event_payload: Dict[str, Any]) -> List[ParsedChange]:
     parsed: List[ParsedChange] = []
     for entry in entries:
         for change in entry.get("changes", []):
-            context = _build_context(entry, change, event_payload)
+            try:
+                context = _build_context(entry, change, event_payload)
+            except UnsupportedEventError:
+                continue
             parsed.append((context, change.get("value", {})))
 
     if not parsed:

@@ -17,7 +17,7 @@ class MetaApiClient:
 
     def _get(self, object_id: str, fields: str) -> Dict[str, Any]:
         if not self.access_token:
-            raise RuntimeError("META_ACCESS_TOKEN is missing.")
+            raise MetaApiError("META_ACCESS_TOKEN is missing.")
 
         try:
             response = requests.get(

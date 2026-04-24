@@ -42,6 +42,8 @@ Chaque interaction est normalisee avec les champs suivants :
 - `problem_labels[i]` correspond a `recommended_solution[i]`
 - `suggested_reply` reste une seule reponse suggeree
 - `status` utilise maintenant seulement `non-treated` ou `treated`
+- apres enrichissement automatique, une interaction reste `non-treated`
+- `treated` doit etre reserve a un traitement reel cote backend ou humain
 
 ## Source types
 
@@ -65,6 +67,29 @@ Regles d'export :
 - une ligne par interaction
 - `problem_labels` et `recommended_solution` sont aplatis avec ` | `
 
+## Sync backend
+
+Si `BACKEND_INGEST_URL` est defini, `data_collection` envoie aussi automatiquement le batch enrichi au backend en JSON vers :
+
+`POST /api/ingest/batch`
+
+Payload envoye :
+
+```json
+{
+  "items": [
+    {
+      "id": "msg_000145"
+    }
+  ]
+}
+```
+
+Variables utiles :
+- `BACKEND_INGEST_URL`
+- `BACKEND_TIMEOUT_SECONDS`
+- `BACKEND_FAIL_ON_SYNC_ERROR`
+
 ## Lancer
 
 ```bash
@@ -72,3 +97,8 @@ py -3 -m pip install -r data_collection/requirements.txt
 py -3 -m data_collection.examples
 py -3 -m uvicorn data_collection.webhook_receiver:app --reload
 ```
+
+## Configuration Gemini
+
+- `GEMINI_API_KEY` doit etre defini dans un fichier local `.env`
+- `GEMINI_MODEL` utilise par defaut `gemini-2.5-flash-lite`

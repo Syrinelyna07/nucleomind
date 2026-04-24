@@ -6,12 +6,15 @@ class Post {
         try {
             console.log("Creating post with data:", data);
             if(!post_link) throw new Error("Post link is required") ;
-            if(!post_description) throw new Error("Post description is required") ;
-            const cond = await this.findByLink(post_link) ;
-            if(cond === null) {
-                const [result] = await pool.execute(`INSERT INTO posts (post_description,nbComments,post_link) VALUES (?,?,?)`,[post_description,nbComments,post_link]);
-                return result.insertId ;
+            const existingPost = await this.findByLink(post_link);
+            if (existingPost) {
+                return existingPost.id;
             }
+            const [result] = await pool.execute(
+                `INSERT INTO posts (post_description,nbComments,post_link) VALUES (?,?,?)`,
+                [post_description || null, nbComments || null, post_link]
+            );
+            return result.insertId ;
         }           
         catch (error) {
             throw new Error(`Error creating post : ${error.message}`);

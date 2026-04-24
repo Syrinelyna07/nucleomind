@@ -18,11 +18,16 @@ class Settings:
         "META_GRAPH_BASE_URL", "https://graph.facebook.com"
     )
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     csv_output_path: str = os.getenv(
         "CSV_OUTPUT_PATH",
         str(Path(__file__).resolve().parent / "outputs" / "collected_interactions.csv"),
     )
+    backend_ingest_url: str = os.getenv("BACKEND_INGEST_URL", "")
+    backend_timeout_seconds: int = int(os.getenv("BACKEND_TIMEOUT_SECONDS", "20"))
+    backend_fail_on_sync_error: bool = os.getenv(
+        "BACKEND_FAIL_ON_SYNC_ERROR", "false"
+    ).lower() in {"1", "true", "yes"}
 
 
 settings = Settings()
