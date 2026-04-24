@@ -1,15 +1,27 @@
-import pool from '../config/database.js';
+import pool from '../config/dbConfig.js';
 
 class Post {
     static async create(data) {
         const {post_description,nbComments,post_link} = data ;  
         try {
-            const [result] = await pool.execute(`INSERT INTO posts (post_description,nbComments,post_link) VALUES (?,?,?)`,[post_description,nbComments,post_link]);
-            return result.insertId ;
+            if(!post_link) throw new Error("Post link is required") ;
+            if(!post_description) throw new Error("Post description is required") ;
+            if(!this.findByLink(post_link)) {
+                const [result] = await pool.execute(`INSERT INTO posts (post_description,nbComments,post_link) VALUES (?,?,?)`,[post_description,nbComments,post_link]);
+                return result.insertId ;
+            }
         }           
         catch (error) {
             throw new Error(`Error creating post : ${error.message}`);
         }   
+    }
+    static async findByLink(post_link) {
+        try {
+            const [rows] = await pool.execute(`SELECT * FROM posts WHERE post_link = ?`, [post_link]);
+            return rows[0];
+        } catch (error) {
+            throw new Error(`Error finding post by link : ${error.message}`);
+        }
     }
     static async findAll() {
         try {
@@ -65,4 +77,19 @@ class Post {
             throw new Error(`Error finding interactions by post id : ${error.message}`);
         }
     }
+    static async getNumbers(id){
+        try {
+            const [rows] = await pool.execute(`SELECT nbComments FROM posts WHERE id = ?`, [id]);
+            const nbComments = rows[0].nbComments ;
+            const [interactionRows] = await pool.execute(`SELECT COUNT(*) AS nbInteractions FROM interaction_posts WHERE postId = ?`, [id]);
+            const [iteractionPositiveRows] = await pool.execute(`SELECT COUNT(*) AS nbPositiveInteractions FROM interaction_posts ip JOIN interactions i ON ip.interactionId = i.id WHERE ip.postId = ? AND i.sentiment_label = 'positive'`, [id]); 
+            const nbPositiveInteractions = iteractionPositiveRows[0].nbPositiveInteractions ;
+            const nbInteractions = interactionRows[0].nbInteractions ;
+            return {nbComments, nbInteractions , nbPositiveInteractions} ;
+        } catch (error) {
+            throw new Error(`Error getting numbers for post : ${error.message}`);
+        }
+    }
 }
+
+export default Post;
