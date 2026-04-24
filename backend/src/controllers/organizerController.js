@@ -184,6 +184,9 @@ const generalStats = async (req, res) => {
         const privateComments = [];
         const privateDMs = [];
         const filteredByDate = [];
+        const nonTraitedCommentsPublic = [];
+        const nonTraitedCommentsPrivate = [];
+        const nonTraitedChat = [];
 
         for (const i of interactions) {
             // =====================
@@ -201,18 +204,20 @@ const generalStats = async (req, res) => {
             if (i.source_type === 'public_comment') {
                 sourceStats.public_comment++;
                 publicComments.push(i);
+                if(i.status = 'not_traited') nonTraitedCommentsPublic.push(i);
             }
 
             if (i.source_type === 'private_comment') {
                 sourceStats.private_comment++;
                 privateComments.push(i);
+                if(i.status = 'not_traited') nonTraitedCommentsPrivate.push(i);
             }
 
             if (i.source_type === 'private_dm') {
                 sourceStats.private_dm++;
                 privateDMs.push(i);
+                if(i.status = 'not_traited') nonTraitedChat.push(i);
             }
-
             // =====================
             // URGENCY (FIXED)
             // =====================
@@ -263,7 +268,10 @@ const generalStats = async (req, res) => {
                 publicComments,
                 privateComments,
                 privateDMs,
-                filteredByDate
+                filteredByDate,
+                nonTraitedChat ,
+                nonTraitedCommentsPrivate,
+                nonTraitedCommentsPublic
             }
         });
 
@@ -496,5 +504,6 @@ const postStat = async (req, res) => {
 export default { 
     importCSV ,
     ProblemSolutionData , 
-    generalStats 
+    generalStats ,
+    postStat
 };
