@@ -155,54 +155,346 @@ const importCSV = async (req, res) => {
 };
 const generalStats = async (req, res) => {
     try {
-        // general Setiment Count
-        const totalInteractions = await Interaction.findAll();
-        const interactionTotalNumber = totalInteractions.length ;
-        let positiveCount = 0;
-        let negativeCount = 0;
-        let neutreCount = 0 ;
-        let commentPrivate = [];
-        let commenstPublic = [];
-        let chatPublic = [];
-        if(interactionTotalNumber != 0){
-            totalInteractions.forEach((interaction)=>{
-                if(interaction.sentiment_label == 'Positive') { 
-                    positiveCount ++ ;
-                }else if(interaction.sentiment_label == 'Negative') {
-                    negativeCount ++ ;
-                }else{
-                    neutreCount ++ ;
+        const { startDate, endDate } = req.query;
+
+        const [interactions] = await pool.execute(`SELECT * FROM interactions`);
+
+        const total = interactions.length;
+
+        // =====================
+        // 📊 COUNTERS
+        // =====================
+        let positive = 0;
+        let negative = 0;
+        let neutral = 0;
+
+        let urgentCount = 0;
+
+        const sourceStats = {
+            public_comment: 0,
+            private_comment: 0,
+            private_dm: 0
+        };
+
+        // =====================
+        // 📦 LISTS
+        // =====================
+        const urgentInteractions = [];
+        const publicComments = [];
+        const privateComments = [];
+        const privateDMs = [];
+        const filteredByDate = [];
+
+        for (const i of interactions) {
+            // =====================
+            // SENTIMENT
+            // =====================
+            const sentiment = (i.sentiment_label || '').toLowerCase();
+
+            if (sentiment === 'positive') positive++;
+            else if (sentiment === 'negative') negative++;
+            else neutral++;
+
+            // =====================
+            // SOURCE GROUPING
+            // =====================
+            if (i.source_type === 'public_comment') {
+                sourceStats.public_comment++;
+                publicComments.push(i);
+            }
+
+            if (i.source_type === 'private_comment') {
+                sourceStats.private_comment++;
+                privateComments.push(i);
+            }
+
+            if (i.source_type === 'private_dm') {
+                sourceStats.private_dm++;
+                privateDMs.push(i);
+            }
+
+            // =====================
+            // URGENCY (FIXED)
+            // =====================
+            if (i.is_urgent === 1 || i.is_urgent === true) {
+                urgentCount++;
+                urgentInteractions.push(i);
+            }
+
+            // =====================
+            // DATE FILTER
+            // =====================
+            if (startDate && endDate) {
+                const createdAt = new Date(i.created_at);
+
+                if (
+                    new Date(startDate) <= createdAt &&
+                    createdAt <= new Date(endDate)
+                ) {
+                    filteredByDate.push(i);
                 }
-            })
+            }
         }
-        // interaction comment not chat 
-        
-        // number of mentions 
-        // critical informations
+
+        // =====================
+        // RESPONSE
+        // =====================
+        return res.json({
+            success: true,
+
+            overview: {
+                totalInteractions: total,
+                filteredInteractions: filteredByDate.length,
+                urgencyRate: total ? (urgentCount / total) * 100 : 0
+            },
+
+            sentiment: {
+                positive,
+                negative,
+                neutral,
+                positiveRate: total ? (positive / total) * 100 : 0,
+                negativeRate: total ? (negative / total) * 100 : 0
+            },
+
+            sourceDistribution: sourceStats,
+
+            lists: {
+                urgentInteractions,
+                publicComments,
+                privateComments,
+                privateDMs,
+                filteredByDate
+            }
+        });
+
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
-}
-const messagesData = async (req, res) => {
-    try {
-        
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-} 
-const commentsData = async (req, res) => {
-    try {
-        
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-}
+};
+
 const ProblemSolutionData = async (req, res) => {
     try {
-        
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-}
+        const [keywords] = await pool.execute(`
+            SELECT id, keyword FROM keywords
+        `);
 
-export default { importCSV };
+        const result = [];
+
+        for (const keyword of keywords) {
+
+            const [rows] = await pool.execute(`
+                SELECT 
+                    k.keyword,
+                    p.id AS problemId,
+                    p.problem_summary,
+                    s.id AS solutionId,
+                    s.solution,
+                    s.solution_summary
+                FROM keywords k
+                JOIN interaction_keywords ik ON ik.keywordId = k.id
+                JOIN interactions i ON i.id = ik.interactionId
+                JOIN interaction_problems ip ON ip.interactionId = i.id
+                JOIN problems p ON p.id = ip.problemId
+                LEFT JOIN problem_solution ps ON ps.problemId = p.id
+                LEFT JOIN solutions s ON s.id = ps.solutionId
+                WHERE k.id = ?
+            `, [keyword.id]);
+
+            const grouped = {
+                keyword: keyword.keyword,
+                problems: []
+            };
+
+            const map = new Map();
+
+            for (const row of rows) {
+                if (!map.has(row.problemId)) {
+                    map.set(row.problemId, {
+                        problemId: row.problemId,
+                        problem: row.problem_summary,
+                        solutions: []
+                    });
+                }
+
+                if (row.solutionId) {
+                    map.get(row.problemId).solutions.push({
+                        id: row.solutionId,
+                        solution: row.solution,
+                        summary: row.solution_summary
+                    });
+                }
+            }
+
+            grouped.problems = Array.from(map.values());
+            result.push(grouped);
+        }
+
+        return res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+const postStat = async (req, res) => {
+    try {
+        // =========================
+        // 1. GET POSTS
+        // =========================
+        const [posts] = await pool.execute(`SELECT * FROM posts`);
+
+        // =========================
+        // 2. GET ALL INTERACTIONS WITH LINKS
+        // =========================
+        const [interactions] = await pool.execute(`
+            SELECT 
+                i.*,
+                ip.postId,
+                p.post_description,
+                p.post_link
+            FROM interactions i
+            LEFT JOIN interaction_posts ip ON i.id = ip.interactionId
+            LEFT JOIN posts p ON p.id = ip.postId
+        `);
+
+        // =========================
+        // STATS VARIABLES
+        // =========================
+        let totalComments = 0;
+        let aboutUs = 0;
+        let aboutOthers = 0;
+
+        let usPositive = 0;
+        let usNegative = 0;
+        let usNeutral = 0;
+
+        const enrichedPosts = [];
+
+        // =========================
+        // MAP POST → INTERACTIONS
+        // =========================
+        const postMap = new Map();
+
+        for (const post of posts) {
+            postMap.set(post.id, {
+                ...post,
+                interactions: []
+            });
+        }
+
+        // =========================
+        // PROCESS INTERACTIONS
+        // =========================
+        for (const i of interactions) {
+            totalComments++;
+
+            const sentiment = (i.sentiment_label || '').toLowerCase();
+
+            const isAboutUs = i.postId !== null;
+
+            if (isAboutUs) aboutUs++;
+            else aboutOthers++;
+
+            // sentiment tracking ONLY for "about us"
+            if (isAboutUs) {
+                if (sentiment === 'positive') usPositive++;
+                else if (sentiment === 'negative') usNegative++;
+                else usNeutral++;
+            }
+
+            // =========================
+            // FETCH RELATED DATA
+            // =========================
+            let problems = [];
+            let keywords = [];
+
+            // problems
+            const [problemRows] = await pool.execute(`
+                SELECT p.id, p.problem_summary, s.solution, s.solution_summary
+                FROM interaction_problems ip
+                JOIN problems p ON p.id = ip.problemId
+                LEFT JOIN problem_solution ps ON ps.problemId = p.id
+                LEFT JOIN solutions s ON s.id = ps.solutionId
+                WHERE ip.interactionId = ?
+            `, [i.id]);
+
+            problems = problemRows;
+
+            // keywords
+            const [keywordRows] = await pool.execute(`
+                SELECT k.keyword
+                FROM interaction_keywords ik
+                JOIN keywords k ON k.id = ik.keywordId
+                WHERE ik.interactionId = ?
+            `, [i.id]);
+
+            keywords = keywordRows.map(k => k.keyword);
+
+            // =========================
+            // BUILD INTERACTION OBJECT
+            // =========================
+            const enrichedInteraction = {
+                ...i,
+                isAboutUs,
+                problems,
+                keywords
+            };
+
+            // attach to post if exists
+            if (i.postId && postMap.has(i.postId)) {
+                postMap.get(i.postId).interactions.push(enrichedInteraction);
+            }
+        }
+
+        enrichedPosts.push(...postMap.values());
+
+        // =========================
+        // FINAL RESPONSE
+        // =========================
+        return res.json({
+            success: true,
+
+            stats: {
+                totalComments,
+
+                aboutUs,
+                aboutOthers,
+
+                percentAboutUs: totalComments ? (aboutUs / totalComments) * 100 : 0,
+                percentAboutOthers: totalComments ? (aboutOthers / totalComments) * 100 : 0,
+
+                sentimentAboutUs: {
+                    positive: usPositive,
+                    negative: usNegative,
+                    neutral: usNeutral,
+
+                    positiveRate: aboutUs ? (usPositive / aboutUs) * 100 : 0,
+                    negativeRate: aboutUs ? (usNegative / aboutUs) * 100 : 0,
+                    neutralRate: aboutUs ? (usNeutral / aboutUs) * 100 : 0
+                }
+            },
+
+            posts: enrichedPosts
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+export default { 
+    importCSV ,
+    ProblemSolutionData , 
+    generalStats 
+};
