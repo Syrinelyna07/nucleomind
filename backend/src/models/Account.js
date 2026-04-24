@@ -30,7 +30,13 @@ class Account {
             throw new Error(`Error in findById: ${error.message}`);
         }
     }
-
+    static async getPasswordHashById(id) {
+        try {
+            const [result] = await pool.execute(`SELECT password_hash FROM accounts WHERE id = ?`,[id]);
+        } catch (error) {
+            
+        }
+    }
     static async searchByEmail(email) {
         try {
             const [result] = await pool.execute(

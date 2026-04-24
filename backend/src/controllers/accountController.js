@@ -46,8 +46,8 @@ const changePassword = async (req, res) => {
     }
 
     try {
-        const account = await Account.findById(req.accountId);
-        const isMatch = Account.comparePassword(currentPassword, account.password_hash);
+        const password_hash = await Account.getPasswordHashById(req.accountId);
+        const isMatch =  Account.comparePassword(currentPassword, password_hash);
 
         if (!isMatch) {
             return res.status(401).json({ error: 'Current password is incorrect' });
