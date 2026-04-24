@@ -1,37 +1,8 @@
 # CanBebe Social Collector
 
-## Architecture minimale
-
-Ce dossier contient uniquement la logique de collecte et d'enrichissement :
-
-1. `webhook_receiver.py`
-   Recoit les evenements Meta, valide le webhook, verifie la signature et transmet la charge utile au pipeline.
-2. `event_parser.py`
-   Parse tous les `entry` et `changes` recus depuis Meta.
-3. `meta_api_client.py`
-   Recupere les details des commentaires et DMs via Meta API.
-4. `normalizer.py`
-   Transforme les donnees detaillees vers le format canonique unique.
-5. `llm_classifier.py`
-   Enrichit le texte avec le LLM ou le fallback par regles.
-6. `csv_exporter.py`
-   Ecrit toutes les interactions enrichies dans un fichier CSV local.
-7. `pipeline.py`
-   Orchestration simple : `receive -> fetch details -> normalize -> classify -> export CSV -> final JSON`.
-
-## Source types
-
-Les valeurs supportees pour `source_type` sont :
-- `private_comment`
-- `public_comment`
-- `private_dm`
-
-Convention utilisee :
-- `private_comment` : commentaires sur vos propres comptes/pages/posts Instagram ou Facebook
-- `public_comment` : commentaires de groupes Facebook
-- `private_dm` : messages prives Instagram ou Facebook Messenger
-
 ## Format canonique
+
+Chaque interaction est normalisee avec les champs suivants :
 
 ```json
 {
@@ -49,7 +20,7 @@ Convention utilisee :
   "created_at": "2026-04-23T13:10:00Z",
   "sentiment_label": "negatif",
   "emotion_label": "frustration",
-  "category_labels": ["prix", "disponibilite"],
+  "category_labels": "prix",
   "problem_labels": ["prix_trop_eleve", "rupture_de_stock"],
   "problem_summary": "Cliente frustree par l'indisponibilite frequente et le prix percu comme eleve.",
   "is_urgent": false,
@@ -63,11 +34,35 @@ Convention utilisee :
 }
 ```
 
-## CSV
+## Regles metier
+
+- `category_labels` est maintenant une seule valeur
+- `problem_labels` reste une liste
+- `recommended_solution` reste une liste
+- `problem_labels[i]` correspond a `recommended_solution[i]`
+- `suggested_reply` reste une seule reponse suggeree
+
+## Source types
+
+Les valeurs supportees pour `source_type` sont :
+- `private_comment`
+- `public_comment`
+- `private_dm`
+
+Convention :
+- `private_comment` : commentaires sur vos propres comptes/pages/posts
+- `public_comment` : commentaires de groupes Facebook
+- `private_dm` : messages prives
+
+## Export CSV
 
 Toutes les interactions enrichies sont aussi ajoutees dans :
 
 `data_collection/outputs/collected_interactions.csv`
+
+Regles d'export :
+- une ligne par interaction
+- `problem_labels` et `recommended_solution` sont aplatis avec ` | `
 
 ## Lancer
 

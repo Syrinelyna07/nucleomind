@@ -136,7 +136,7 @@ def normalize_interaction(
         ),
         sentiment_label="neutre",
         emotion_label="neutre",
-        category_labels=["autre"],
+        category_labels="autre",
         problem_labels=["autre"],
         problem_summary="En attente de classification.",
         is_urgent=False,

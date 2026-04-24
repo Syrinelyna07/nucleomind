@@ -41,7 +41,7 @@ class CanonicalInteraction:
     created_at: str
     sentiment_label: str
     emotion_label: str
-    category_labels: List[str]
+    category_labels: str
     problem_labels: List[str]
     problem_summary: str
     is_urgent: bool

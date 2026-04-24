@@ -91,13 +91,14 @@ sentiment_label, emotion_label, category_labels, problem_labels, problem_summary
 Contraintes:
 - sentiment_label in [positif, neutre, negatif]
 - emotion_label in [satisfaction, frustration, confiance, colere, deception, neutre]
-- category_labels: tableau de une ou plusieurs valeurs parmi [prix, disponibilite, qualite, confort, absorption, service_client, autre]
+- category_labels: une seule valeur parmi [prix, disponibilite, qualite, confort, absorption, service_client, autre]
 - problem_labels: tableau de une ou plusieurs valeurs parmi [rupture_de_stock, prix_trop_eleve, defaut_qualite, inconfort_utilisation, probleme_absorption, absence_reponse_service_client, autre]
 - is_urgent: true si le message evoque un danger, un risque pour la sante, un bebe en detresse, un probleme sensible, ou un cas serieux
 - l'urgence ne depend pas uniquement d'un sentiment negatif
 - urgency_reason: phrase courte expliquant pourquoi le message est urgent, sinon chaine vide
 - problem_summary: phrase courte et claire
 - recommended_solution: tableau de une ou plusieurs actions exploitables en francais
+- recommended_solution[i] doit correspondre a problem_labels[i]
 - suggested_reply: court, poli, empathique, professionnel, en francais
 
 Contexte:
@@ -123,13 +124,13 @@ content_text={content_text}
 
     def _classify_with_rules(self, content_text: str) -> Dict[str, str]:
         text = content_text.lower()
-        category_labels = [
+        detected_categories = [
             name for name, keywords in KEYWORD_RULES.items()
             if any(keyword in text for keyword in keywords)
         ]
-        if not category_labels:
-            category_labels = ["autre"]
-        category = category_labels[0]
+        if not detected_categories:
+            detected_categories = ["autre"]
+        category = detected_categories[0]
 
         sentiment = "neutre"
         if any(token in text for token in ["bien", "merci", "satisfait", "excellent", "mli7"]):
@@ -137,7 +138,7 @@ content_text={content_text}
         if any(token in text for token in ["cher", "decu", "mauvais", "introuvable", "probleme", "ghali", "ma l9itch"]):
             sentiment = "negatif"
 
-        problem_labels = [PROBLEM_BY_CATEGORY.get(cat, "autre") for cat in category_labels]
+        problem_labels = [PROBLEM_BY_CATEGORY.get(cat, "autre") for cat in detected_categories]
         if not problem_labels:
             problem_labels = ["autre"]
 
@@ -155,14 +156,14 @@ content_text={content_text}
             emotion = "colere"
 
         summary = self._build_problem_summary(category, sentiment, content_text)
-        solution = self._build_solution(category_labels, is_urgent)
+        solution = self._build_solution(problem_labels, is_urgent)
         reply = self._build_reply(category, sentiment, is_urgent)
 
         return self._sanitize_result(
             {
                 "sentiment_label": sentiment,
                 "emotion_label": emotion,
-                "category_labels": category_labels,
+                "category_labels": category,
                 "problem_labels": problem_labels,
                 "problem_summary": summary,
                 "is_urgent": is_urgent,
@@ -199,25 +200,25 @@ content_text={content_text}
             return "Le message evoque un danger ou un risque serieux necessitant une revue prioritaire."
         return f"Le message doit etre traite en priorite en raison de sa sensibilite ({category})."
 
-    def _build_solution(self, category_labels: list[str], is_urgent: bool) -> list[str]:
+    def _build_solution(self, problem_labels: list[str], is_urgent: bool) -> list[str]:
         solutions: list[str] = []
-        if is_urgent:
-            solutions.append(
-                "Escalader immediatement au support senior et a l'equipe qualite pour revue prioritaire du cas."
-            )
         mapped = {
-            "prix": "Ameliorer la communication sur le prix et partager les formats les plus adaptes.",
-            "disponibilite": "Remonter le cas a l'equipe distribution et verifier la disponibilite locale.",
-            "qualite": "Escalader a l'equipe qualite pour verification du lot ou du produit.",
-            "confort": "Transmettre le retour au support client et verifier l'usage recommande.",
-            "absorption": "Faire remonter le cas a l'equipe qualite produit pour investigation.",
-            "service_client": "Transmettre au support client pour reprise de contact rapide.",
+            "prix_trop_eleve": "Ameliorer la communication sur le prix et partager les formats les plus adaptes.",
+            "rupture_de_stock": "Remonter le cas a l'equipe distribution et verifier la disponibilite locale.",
+            "defaut_qualite": "Escalader a l'equipe qualite pour verification du lot ou du produit.",
+            "inconfort_utilisation": "Transmettre le retour au support client et verifier l'usage recommande.",
+            "probleme_absorption": "Faire remonter le cas a l'equipe qualite produit pour investigation.",
+            "absence_reponse_service_client": "Transmettre au support client pour reprise de contact rapide.",
             "autre": "Faire une revue manuelle pour orienter le message vers la bonne equipe.",
         }
-        for category in category_labels:
-            solution = mapped.get(category)
-            if solution and solution not in solutions:
-                solutions.append(solution)
+        for problem in problem_labels:
+            if is_urgent:
+                solutions.append(
+                    "Escalader immediatement au support senior et a l'equipe qualite pour revue prioritaire du cas."
+                )
+                is_urgent = False
+            solution = mapped.get(problem, mapped["autre"])
+            solutions.append(solution)
         return solutions or ["Faire une revue manuelle pour orienter le message vers la bonne equipe."]
 
     def _build_reply(self, category: str, sentiment: str, is_urgent: bool) -> str:
@@ -239,21 +240,16 @@ content_text={content_text}
         sanitized = {field: result.get(field, "") for field in CLASSIFICATION_FIELDS}
         sanitized["sentiment_label"] = str(sanitized["sentiment_label"]).strip()
         sanitized["emotion_label"] = str(sanitized["emotion_label"]).strip()
+        sanitized["category_labels"] = str(sanitized["category_labels"]).strip()
         sanitized["problem_summary"] = str(sanitized["problem_summary"]).strip()
         sanitized["urgency_reason"] = str(sanitized["urgency_reason"]).strip()
         sanitized["suggested_reply"] = str(sanitized["suggested_reply"]).strip()
-        raw_category_labels = sanitized.get("category_labels", [])
         raw_problem_labels = sanitized.get("problem_labels", [])
         raw_recommended_solution = sanitized.get("recommended_solution", [])
-        if not isinstance(raw_category_labels, list):
-            raw_category_labels = [raw_category_labels]
         if not isinstance(raw_problem_labels, list):
             raw_problem_labels = [raw_problem_labels]
         if not isinstance(raw_recommended_solution, list):
             raw_recommended_solution = [raw_recommended_solution]
-        sanitized["category_labels"] = [
-            str(value).strip() for value in raw_category_labels if str(value).strip()
-        ]
         sanitized["problem_labels"] = [
             str(value).strip() for value in raw_problem_labels if str(value).strip()
         ]
@@ -273,20 +269,16 @@ content_text={content_text}
             "neutre",
         }:
             sanitized["emotion_label"] = "neutre"
-        sanitized["category_labels"] = [
-            value for value in sanitized["category_labels"]
-            if value in {
-                "prix",
-                "disponibilite",
-                "qualite",
-                "confort",
-                "absorption",
-                "service_client",
-                "autre",
-            }
-        ]
-        if not sanitized["category_labels"]:
-            sanitized["category_labels"] = ["autre"]
+        if sanitized["category_labels"] not in {
+            "prix",
+            "disponibilite",
+            "qualite",
+            "confort",
+            "absorption",
+            "service_client",
+            "autre",
+        }:
+            sanitized["category_labels"] = "autre"
         sanitized["problem_labels"] = [
             value for value in sanitized["problem_labels"]
             if value in {
@@ -305,9 +297,13 @@ content_text={content_text}
             sanitized["problem_summary"] = "Analyse incomplete."
         sanitized["is_urgent"] = bool(sanitized["is_urgent"])
         if not sanitized["recommended_solution"]:
-            sanitized["recommended_solution"] = [
-                "Faire une revue manuelle pour orienter le message vers la bonne equipe."
-            ]
+            sanitized["recommended_solution"] = self._build_solution(
+                sanitized["problem_labels"], sanitized["is_urgent"]
+            )
+        if len(sanitized["recommended_solution"]) != len(sanitized["problem_labels"]):
+            sanitized["recommended_solution"] = self._build_solution(
+                sanitized["problem_labels"], sanitized["is_urgent"]
+            )
         if not sanitized["suggested_reply"]:
             sanitized["suggested_reply"] = "Merci pour votre message. Nous revenons vers vous rapidement."
         return sanitized
