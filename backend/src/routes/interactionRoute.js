@@ -1,4 +1,11 @@
-import express from 'express'
-import interactionController from '../controllers/interactionController';
+import express from 'express';
+import controller from '../controllers/interactionController.js';
 
-const route = express.Router();
+const router = express.Router();
+
+router.post('/', controller.createInteraction);
+router.get('/', controller.getAllInteractions);
+router.get('/full', controller.getAllInteractionsFull);
+router.get('/:id/full', controller.getInteractionWithRelations);
+
+export default router;

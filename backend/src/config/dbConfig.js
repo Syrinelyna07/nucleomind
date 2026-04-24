@@ -7,11 +7,12 @@ const dbConfig = {
     user : envConfig.DB_USER,
     password : envConfig.DB_PASSWORD,
     database : envConfig.DB_NAME,
+    port: Number(envConfig.DB_PORT),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 };
-
+console.log('DB CONFIG:', envConfig.DB_HOST, envConfig.DB_PORT);
 const pool = mysql.createPool(dbConfig);
 
 async function createAccountTable() {
@@ -32,17 +33,16 @@ const createInteractionTable = async () => {
     try {
         const [result] = await pool.execute(`CREATE TABLE IF NOT EXISTS interactions (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            status ENUM ('traited', 'not traited') NOT NULL,
+            status ENUM ('traited', 'not_traited') NOT NULL,
             description TEXT,
-            source_type ENUM ('public_comment','private_comment','chat'),
+            source_type ENUM ('public_comment','private_comment','private_dm') NOT NULL,
             author_username VARCHAR(255),
             content_text TEXT,
             sentiment_label ENUM ('positive', 'negative', 'neutral'),
             emotion_label VARCHAR(255),
             suggested_reply TEXT,
             content_lg VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (accountId) REFERENCES accounts(id) ON DELETE CASCADE
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
     } catch (error) {
         throw new Error(`Error creating the interactions table : ${error.message}`);

@@ -1,4 +1,4 @@
-import pool from '../config/dbConfig';
+import pool from '../config/dbConfig.js';
 
 class Problem {
     static async create(data) {
@@ -10,6 +10,30 @@ class Problem {
             throw new Error(`Error creating problem : ${error.message}`);
         }
     }   
+    static async createProblemSolution(problemId, solutionId) {
+        try {
+            await pool.execute(`INSERT INTO problem_solution (problemId, solutionId) VALUES (?, ?)`, [problemId, solutionId]);  
+        } catch (error) {
+            throw new Error(`Error linking problem and solution : ${error.message}`);
+        }
+    }
+    static async findSolutionsByProblemId(problemId) {
+        try {
+            const [rows] = await pool.execute(`SELECT s.* FROM solutions s JOIN problem_solution ps ON s.id = ps.solutionId WHERE ps.problemId = ?`, [problemId]);      
+            return rows;
+        } catch (error) {
+            throw new Error(`Error finding solutions by problem id : ${error.message}`);
+        }   
+    }
+    static async createSolution (data) {
+        const {solution,solution_summary} = data ;  
+        try {
+            const [result] = await pool.execute(`INSERT INTO solutions (solution, solution_summary) VALUES (?, ?)`,[solution,solution_summary]);
+            return result.insertId ;
+        } catch (error) {
+            throw new Error(`Error creating solution : ${error.message}`);
+        }
+    }
     static async findAll() {
         try {
             const [rows] = await pool.execute(`SELECT * FROM problems`);        
@@ -49,6 +73,8 @@ class Problem {
             throw new Error(`Error finding problems by interaction id : ${error.message}`);
         }
     }
-    
+
 }
+
+export default Problem;
 
