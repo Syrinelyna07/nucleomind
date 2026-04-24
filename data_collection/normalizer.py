@@ -136,18 +136,12 @@ def normalize_interaction(
         ),
         sentiment_label="neutre",
         emotion_label="neutre",
-        category_main="autre",
         category_labels=["autre"],
-        problem_detected="autre",
         problem_labels=["autre"],
         problem_summary="En attente de classification.",
         is_urgent=False,
         urgency_reason="",
-        recommended_solution="Analyser le message pour determiner la prochaine action.",
-        solution_labels=["analyse_manuelle"],
+        recommended_solution=["Analyser le message pour determiner la prochaine action."],
         suggested_reply="Merci pour votre message. Nous revenons vers vous rapidement.",
-        suggested_reply_options=[
-            "Merci pour votre message. Nous revenons vers vous rapidement."
-        ],
         status="non-treated",
     )

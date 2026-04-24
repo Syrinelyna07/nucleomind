@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 
 VALID_PLATFORMS = {"instagram", "facebook"}
-VALID_SOURCE_TYPES = {"public_comment", "private_dm"}
+VALID_SOURCE_TYPES = {"public_comment", "private_comment", "private_dm"}
 VALID_SENTIMENTS = {"positif", "neutre", "negatif"}
 VALID_EMOTIONS = {
     "satisfaction",
@@ -41,17 +41,13 @@ class CanonicalInteraction:
     created_at: str
     sentiment_label: str
     emotion_label: str
-    category_main: str
     category_labels: List[str]
-    problem_detected: str
     problem_labels: List[str]
     problem_summary: str
     is_urgent: bool
     urgency_reason: str
-    recommended_solution: str
-    solution_labels: List[str]
+    recommended_solution: List[str]
     suggested_reply: str
-    suggested_reply_options: List[str]
     status: str = "non-treated"
 
     def to_dict(self) -> Dict[str, Any]:

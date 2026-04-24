@@ -23,17 +23,13 @@ CSV_COLUMNS = [
     "created_at",
     "sentiment_label",
     "emotion_label",
-    "category_main",
     "category_labels",
-    "problem_detected",
     "problem_labels",
     "problem_summary",
     "is_urgent",
     "urgency_reason",
     "recommended_solution",
-    "solution_labels",
     "suggested_reply",
-    "suggested_reply_options",
     "status",
 ]
 

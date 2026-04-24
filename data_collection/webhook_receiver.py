@@ -33,9 +33,9 @@ async def receive_meta_webhook(
     """Receive supported Meta events.
 
     Supported interaction types:
-    - Instagram comment
+    - Instagram private comment
     - Instagram DM
-    - Facebook Page comment
+    - Facebook Page private comment
     - Facebook Group comment
     - Facebook DM
     """

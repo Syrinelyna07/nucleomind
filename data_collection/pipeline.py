@@ -51,17 +51,13 @@ class SocialCollectionPipeline:
         )
         canonical.sentiment_label = enrichment["sentiment_label"]
         canonical.emotion_label = enrichment["emotion_label"]
-        canonical.category_main = enrichment["category_main"]
         canonical.category_labels = enrichment["category_labels"]
-        canonical.problem_detected = enrichment["problem_detected"]
         canonical.problem_labels = enrichment["problem_labels"]
         canonical.problem_summary = enrichment["problem_summary"]
         canonical.is_urgent = enrichment["is_urgent"]
         canonical.urgency_reason = enrichment["urgency_reason"]
         canonical.recommended_solution = enrichment["recommended_solution"]
-        canonical.solution_labels = enrichment["solution_labels"]
         canonical.suggested_reply = enrichment["suggested_reply"]
-        canonical.suggested_reply_options = enrichment["suggested_reply_options"]
         canonical.status = "analyzed"
         return canonical.to_dict()
 

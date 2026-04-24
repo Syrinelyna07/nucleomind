@@ -35,7 +35,7 @@ def _build_context(
     if platform == "instagram" and event_type == "comment":
         return InteractionContext(
             platform="instagram",
-            source_type="public_comment",
+            source_type="private_comment",
             event_id=value["comment_id"],
             account_id=entry["id"],
             account_name=value["account_name"],
@@ -56,7 +56,7 @@ def _build_context(
     if platform == "facebook" and event_type == "comment":
         return InteractionContext(
             platform="facebook",
-            source_type="public_comment",
+            source_type="private_comment",
             event_id=value["comment_id"],
             account_id=entry["id"],
             account_name=value["page_name"],
